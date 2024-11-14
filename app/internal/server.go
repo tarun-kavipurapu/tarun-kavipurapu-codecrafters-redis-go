@@ -60,6 +60,9 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 		if err != nil {
 			log.Println("Error Reading Prefix", err)
 		}
+		if output.Cmd == "PING" {
+			conn.Write([]byte("+" + "PONG" + "\r\n"))
+		}
 		if output.Cmd == "ECHO" {
 			ans := output.Args[0]
 			conn.Write([]byte("+" + ans + "\r\n"))
