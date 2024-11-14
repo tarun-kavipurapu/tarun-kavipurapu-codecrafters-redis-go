@@ -91,9 +91,11 @@ func (s *Server) readCommands(c io.ReadWriter) (*Command, error) {
 	}
 	command.Cmd = strings.ToUpper(tokens[0])
 
-	for _, v := range tokens[1:] {
-		command.Args = append(command.Args, strings.ToUpper(v))
-	}
+	// for _, v := range tokens[1:] {
+	// 	command.Args = append(command.Args, strings.ToUpper(v))
+	// }
+
+	command.Args = tokens[1:]
 
 	return &command, nil
 
