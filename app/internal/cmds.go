@@ -1,6 +1,6 @@
 package internal
 
 type Command struct {
-	cmd  string
+	Cmd  string
 	Args []string
 }

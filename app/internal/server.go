@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 )
 
 var DefaultAddr = "0.0.0.0:6379"
@@ -51,20 +52,62 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 		conn.Close()
 	}()
 	for {
-		var buff = make([]byte, 2048)
-		n, err := conn.Read(buff)
+		output, err := s.readCommands(conn)
 		if err == io.EOF {
 			log.Println("EOF received, closing connection:", conn.RemoteAddr())
 			return
 		}
 		if err != nil {
-			log.Println(err)
-			return
+			log.Println("Error Reading Prefix", err)
 		}
-		command := string(buff[:n])
-		log.Println(command)
-		conn.Write([]byte("+PONG\r\n"))
+		if output.Cmd == "ECHO" {
+			ans := output.Args[0]
+			conn.Write([]byte(ans))
+		}
 
 	}
+
+}
+func (s *Server) readCommands(c io.ReadWriter) (*Command, error) {
+	reader := NewRespReader(c)
+	command := Command{}
+	values, err := reader.CommandRead()
+	if err != nil {
+		return nil, err
+	}
+	arrayValue, ok := values.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("expected array, got %T", values)
+
+	}
+	tokens, err := toArrayString(arrayValue)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("empty command")
+
+	}
+	command.Cmd = strings.ToUpper(tokens[0])
+
+	for _, v := range tokens[1:] {
+		command.Args = append(command.Args, strings.ToUpper(v))
+	}
+
+	return &command, nil
+
+}
+func toArrayString(val []interface{}) ([]string, error) {
+	ans := make([]string, len(val))
+	for i, v := range val {
+		s, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("element at index %d is not a string", i)
+		}
+		ans[i] = s
+	}
+
+	return ans, nil
 
 }

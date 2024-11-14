@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	server := internal.NewServer(internal.DefaultAddr)
 	err := server.ListenAndAccept()
 	if err != nil {
