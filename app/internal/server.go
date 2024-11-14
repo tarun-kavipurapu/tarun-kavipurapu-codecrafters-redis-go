@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"strings"
 )
 
 var DefaultAddr = "0.0.0.0:6379"
@@ -63,14 +62,8 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 			return
 		}
 		command := string(buff[:n])
-
-		parts := strings.Fields(command)
-		if len(parts) > 0 {
-			switch parts[0] {
-			case "*1\r\n$4\r\nPING\r\n":
-				conn.Write([]byte("PONG\r\n"))
-			}
-		}
+		log.Println(command)
+		conn.Write([]byte("+PONG\r\n"))
 
 	}
 
