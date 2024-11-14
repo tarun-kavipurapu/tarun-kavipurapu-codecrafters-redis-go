@@ -62,7 +62,7 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 		}
 		if output.Cmd == "ECHO" {
 			ans := output.Args[0]
-			conn.Write([]byte("+" + ans + "/r/n"))
+			conn.Write([]byte("+" + ans + "\r\n"))
 		}
 
 	}
