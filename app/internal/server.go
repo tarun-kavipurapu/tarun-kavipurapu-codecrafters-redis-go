@@ -67,8 +67,8 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 		parts := strings.Fields(command)
 		if len(parts) > 0 {
 			switch parts[0] {
-			case "PING":
-				conn.Write([]byte("PONG"))
+			case "*1\r\n$4\r\nPING\r\n":
+				conn.Write([]byte("PONG\r\n"))
 			}
 		}
 
