@@ -58,17 +58,28 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 			return
 		}
 		if err != nil {
-			log.Println("Error Reading Prefix", err)
+			log.Println("Error Reading Prefix and command ", err)
 		}
-		if output.Cmd == "PING" {
-			conn.Write([]byte("+" + "PONG" + "\r\n"))
-		}
-		if output.Cmd == "ECHO" {
-			ans := output.Args[0]
-			conn.Write([]byte("+" + ans + "\r\n"))
+		outputString, err := evaluateFunc(output)
+		if err != nil {
+			log.Println("Error Evaluating the Command", err)
+
 		}
 
+		conn.Write([]byte(outputString))
 	}
+
+}
+func evaluateFunc(output *Command) (string, error) {
+	if output.Cmd == "PING" {
+		return ("+" + "PONG" + "\r\n"), nil
+	}
+	if output.Cmd == "ECHO" {
+		ans := output.Args[0]
+		return ("+" + ans + "\r\n"), nil
+	}
+
+	return "", nil
 
 }
 func (s *Server) readCommands(c io.ReadWriter) (*Command, error) {
