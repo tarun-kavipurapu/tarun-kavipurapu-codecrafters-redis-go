@@ -16,15 +16,17 @@ type config struct {
 
 type Server struct {
 	listener net.Listener
+	store    *Store
 	config
 }
 
-func NewServer(addr string) *Server {
+func NewServer(addr string, store *Store) *Server {
 	if addr == "" {
 		addr = DefaultAddr
 	}
 	return &Server{
 		config: config{addr: addr},
+		store:  store,
 	}
 }
 func (s *Server) ListenAndAccept() error {
@@ -60,34 +62,39 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 		if err != nil {
 			log.Println("Error Reading Prefix and command ", err)
 		}
-		outputString, err := evaluateFunc(output)
-		if err != nil {
-			log.Println("Error Evaluating the Command", err)
-
+		if output == nil {
+			log.Println("Command Does not follow Resp ")
+			conn.Write([]byte("-ERR unknown command\r\n"))
+			continue
 		}
 
-		conn.Write([]byte(outputString))
+		outputString, err := EvaluateFunc(output, s.store)
+
+		if err != nil {
+			log.Println("Error Evaluating the OutputString")
+			conn.Write([]byte(err.Error()))
+		}
+		_, writeErr := conn.Write([]byte(outputString))
+		if writeErr != nil {
+			log.Println("Error writing to connection:", writeErr)
+			return
+		}
 	}
 
 }
-func evaluateFunc(output *Command) (string, error) {
-	if output.Cmd == "PING" {
-		return ("+" + "PONG" + "\r\n"), nil
-	}
-	if output.Cmd == "ECHO" {
-		ans := output.Args[0]
-		return ("+" + ans + "\r\n"), nil
-	}
 
-	return "", nil
-
-}
 func (s *Server) readCommands(c io.ReadWriter) (*Command, error) {
 	reader := NewRespReader(c)
 	command := Command{}
 	values, err := reader.CommandRead()
+	// if values==nil{
+	// 	return nil fmt.Errorf("")
+	// }
 	if err != nil {
 		return nil, err
+	}
+	if values == nil {
+		return nil, fmt.Errorf("received nil values from CommandRead")
 	}
 	arrayValue, ok := values.([]interface{})
 	if !ok {

@@ -8,8 +8,10 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	server := internal.NewServer(internal.DefaultAddr)
+	//create a global store
+	store := internal.NewStore()
+	//create the central Server needed
+	server := internal.NewServer(internal.DefaultAddr, store)
 	err := server.ListenAndAccept()
 	if err != nil {
 		log.Println(err)
