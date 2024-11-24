@@ -115,7 +115,9 @@ func executeGet(output *Command, s *Store) ([]byte, error) {
 		return respNull, nil
 
 	}
-	log.Println(val)
+	log.Println(val.value)
+	log.Println(val.expiryAt)
+	log.Println(val.createdAt)
 
 	return respString(val.value), nil
 }
