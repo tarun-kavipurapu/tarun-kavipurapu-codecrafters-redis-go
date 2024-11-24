@@ -17,14 +17,19 @@ import (
 // 	key    string
 // 	expiry time.Time
 // }
+type Record struct {
+	value     string
+	createdAt time.Time
+	expiryAt  time.Time
+}
 type Store struct {
-	kv map[string]string
+	kv map[string]*Record
 	mu sync.RWMutex
 }
 
 func NewStore() *Store {
 	return &Store{
-		kv: make(map[string]string),
+		kv: make(map[string]*Record),
 		mu: sync.RWMutex{},
 	}
 }
@@ -68,7 +73,11 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 	key := output.Args[0]
 
 	value := output.Args[1]
-	s.kv[key] = value
+	record := &Record{
+		value:     value,
+		createdAt: time.Now(),
+	}
+
 	if len(output.Args) > 3 && output.Args[2] == "PX" {
 		expiry, err := strconv.Atoi(output.Args[3])
 		if err != nil {
@@ -77,34 +86,36 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 		log.Println("Expiry Triggered", expiry)
 
 		//Another way  of expiring this would be to maintain an expiry map in the Store struct and then while accesing it wwith the golang you can simply expire it
-		go deleteAfterExpiry(expiry, s, key)
+
+		record.expiryAt = time.Now().Add(time.Duration(expiry) * time.Millisecond)
 	}
+	s.kv[key] = record
 
 	// s.kv[output.Cmd] =
 
 	return respOK, nil
 }
 
-func deleteAfterExpiry(t int, s *Store, key string) {
-	//waiit till the time is tickered
-	time.Sleep(time.Duration(t) * time.Second)
-	s.mu.Lock()
-	delete(s.kv, key)
-	s.mu.Unlock()
-	//delete from the key
-}
-
 func executeGet(output *Command, s *Store) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	if len(output.Args) < 1 {
 		return nil, fmt.Errorf("KEy is missing")
 	}
-
 	key := output.Args[0]
-	value, ok := s.kv[key]
-	if !ok {
-		return respNull, fmt.Errorf("value corresponding to key not found")
+	val, prsnt := s.kv[key]
+	if !prsnt {
+		return respNull, nil
 	}
-	return respString(value), nil
+	if time.Now().After(val.expiryAt) && !val.expiryAt.IsZero() {
+
+		delete(s.kv, key)
+
+		return respNull, nil
+
+	}
+	log.Println(val)
+
+	return respString(val.value), nil
 }
