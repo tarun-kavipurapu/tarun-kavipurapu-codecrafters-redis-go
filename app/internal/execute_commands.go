@@ -88,11 +88,16 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 
 		//Another way  of expiring this would be to maintain an expiry map in the Store struct and then while accesing it wwith the golang you can simply expire it
 
-		record.expiryAt = time.Now().Add(time.Duration(expiry) * time.Millisecond)
+		now := time.Now()
+
+		// Add 27 seconds to the current time
+		expiryTime := now.Add(time.Duration(expiry) * time.Second)
+		record.expiryAt = expiryTime
 	}
 	s.kv[key] = record
 
-	// s.kv[output.Cmd] =
+	// log.Println(s.kv[key].expiryAt)
+	// log.Println(s.kv[key].expiryAt)
 
 	return respOK, nil
 }
@@ -110,7 +115,7 @@ func executeGet(output *Command, s *Store) ([]byte, error) {
 		return respNull, nil
 	}
 	if time.Now().After(val.expiryAt) && !val.expiryAt.IsZero() {
-
+		log.Println("I am here")
 		delete(s.kv, key)
 
 		return respNull, nil
