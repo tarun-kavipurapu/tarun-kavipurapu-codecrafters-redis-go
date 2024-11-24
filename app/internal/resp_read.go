@@ -2,8 +2,8 @@ package internal
 
 import (
 	"bufio"
+	"fmt"
 	"io"
-	"log"
 	"strconv"
 )
 
@@ -13,6 +13,13 @@ const (
 	INTEGER = ':'
 	BULK    = '$'
 	ARRAY   = '*'
+)
+const (
+	CRLF = "\r\n"
+)
+const (
+	MaxBulkSize = 512 * 1024 * 1024 // 512MB max bulk size
+	MaxArrayLen = 1024 * 1024       // 1M max array elements
 )
 
 type RespReader struct {
@@ -26,16 +33,16 @@ func NewRespReader(r io.Reader) *RespReader {
 }
 
 func (r *RespReader) CommandRead() (interface{}, error) {
-	// input := "$5\r\nAhmed\r\n"
-
-	var err error
 	byte, err := r.c.ReadByte()
 	if err != nil {
 		return nil, err
 	}
+
 	switch byte {
 	case STRING:
+		return r.readSimpleString()
 	case ERROR:
+		return r.readError()
 	case INTEGER:
 		return r.readInteger()
 	case BULK:
@@ -43,60 +50,89 @@ func (r *RespReader) CommandRead() (interface{}, error) {
 	case ARRAY:
 		return r.readArray()
 	default:
-		log.Println("Unknown Type\n")
-		return nil, nil
+		return nil, fmt.Errorf("unknown RESP type: %c", byte)
 	}
+}
+
+// Add these new methods
+func (r *RespReader) readSimpleString() (string, error) {
+	line, err := r.readLine()
+	if err != nil {
+		return "", err
+	}
+	return string(line), nil
+}
+
+func (r *RespReader) readError() (error, error) {
+	line, err := r.readLine()
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return fmt.Errorf(string(line)), nil
+}
+
+// Helper method for reading lines
+func (r *RespReader) readLine() ([]byte, error) {
+	line, _, err := r.c.ReadLine()
+	return line, err
 }
 
 func (r *RespReader) readBulk() (string, error) {
-	n, err := r.readInteger()
+	length, err := r.readInteger()
 	if err != nil {
 		return "", err
 	}
-	if n == -1 {
-		return "", nil
-	}
-	command, _, err := r.c.ReadLine()
-	if err != nil {
-		return "", err
-	}
-	// log.Println(string(command))
 
-	return string(command), nil
+	if length == -1 {
+		return "", nil // null bulk string
+	}
+
+	// Read exactly length bytes
+	bulk := make([]byte, length)
+	_, err = io.ReadFull(r.c, bulk)
+	if err != nil {
+		return "", err
+	}
+
+	// Read and discard CRLF
+	_, _, err = r.c.ReadLine()
+	if err != nil {
+		return "", err
+	}
+
+	return string(bulk), nil
 }
-
 func (r *RespReader) readInteger() (int, error) {
-	byte, _, err := r.c.ReadLine()
+	line, err := r.readLine()
 	if err != nil {
 		return 0, err
 	}
-	num, err := strconv.Atoi(string(byte))
+
+	num, err := strconv.Atoi(string(line))
 	if err != nil {
-		return 0, nil
+		return 0, fmt.Errorf("invalid integer: %s", line)
 	}
 
 	return num, nil
-
 }
-
 func (r *RespReader) readArray() (interface{}, error) {
-	size, err := r.readInteger()
+	length, err := r.readInteger()
 	if err != nil {
 		return nil, err
 	}
-	values := make([]interface{}, size)
-	for i := 0; i < size; i++ {
+
+	if length == -1 {
+		return nil, nil // null array
+	}
+
+	values := make([]interface{}, length)
+	for i := 0; i < length; i++ {
 		val, err := r.CommandRead()
-		log.Println(val)
 		if err != nil {
 			return nil, err
 		}
 		values[i] = val
-
 	}
+
 	return values, nil
 }
