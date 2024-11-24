@@ -42,7 +42,7 @@ func EvaluateFunc(output *Command, s *Store) ([]byte, error) {
 	case "GET":
 		outputString, err = executeGet(output, s)
 	default:
-		outputString = []byte("-ERR unknown command '" + output.Cmd + "'\r\n")
+		err = fmt.Errorf("-ERR unknown command '" + output.Cmd + "'\r\n")
 	}
 
 	return outputString, err
@@ -63,7 +63,7 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 	defer s.mu.Unlock()
 	log.Println(output)
 	if len(output.Args) < 2 {
-		return nil, fmt.Errorf("Either the key or value is missing")
+		return nil, fmt.Errorf("either the key or value is missing")
 	}
 	key := output.Args[0]
 
@@ -72,8 +72,11 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 	if len(output.Args) > 3 && output.Args[2] == "PX" {
 		expiry, err := strconv.Atoi(output.Args[3])
 		if err != nil {
-			return nil, fmt.Errorf("Error Getting the Expiry form the Args")
+			return nil, fmt.Errorf("error getting the expiry from the args")
 		}
+		log.Println("Expiry Triggered", expiry)
+
+		//Another way  of expiring this would be to maintain an expiry map in the Store struct and then while accesing it wwith the golang you can simply expire it
 		go deleteAfterExpiry(expiry, s, key)
 	}
 
@@ -84,8 +87,10 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 
 func deleteAfterExpiry(t int, s *Store, key string) {
 	//waiit till the time is tickered
-	time.Sleep(time.Duration(t) * time.Millisecond)
+	time.Sleep(time.Duration(t) * time.Second)
+	s.mu.Lock()
 	delete(s.kv, key)
+	s.mu.Unlock()
 	//delete from the key
 }
 
@@ -99,7 +104,7 @@ func executeGet(output *Command, s *Store) ([]byte, error) {
 	key := output.Args[0]
 	value, ok := s.kv[key]
 	if !ok {
-		return respNull, fmt.Errorf("Value corresponding to key not found")
+		return respNull, fmt.Errorf("value corresponding to key not found")
 	}
 	return respString(value), nil
 }

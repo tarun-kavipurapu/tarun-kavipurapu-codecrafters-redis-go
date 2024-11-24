@@ -69,7 +69,7 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 		}
 
 		outputString, err := EvaluateFunc(output, s.store)
-
+		log.Println(string(outputString))
 		if err != nil {
 			log.Println("Error Evaluating the OutputString")
 			// conn.Write([]byte(err.Error()))
