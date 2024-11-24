@@ -5,6 +5,8 @@ import "fmt"
 type Resp struct {
 }
 
+var respNull = "$-1\r\n"
+
 func respOK() string {
 	return ("+OK\r\n")
 }

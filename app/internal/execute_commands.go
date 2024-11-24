@@ -99,7 +99,7 @@ func executeGet(output *Command, s *Store) (string, error) {
 	key := output.Args[0]
 	value, ok := s.kv[key]
 	if !ok {
-		return "", fmt.Errorf("Value corresponding to key not found")
+		return respNull, fmt.Errorf("Value corresponding to key not found")
 	}
 	return respString(value), nil
 }
