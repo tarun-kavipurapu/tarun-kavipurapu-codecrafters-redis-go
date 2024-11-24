@@ -3,9 +3,20 @@ package internal
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"sync"
+	"time"
 )
 
+/*
+- Create a channel  where expiry of keys can be stored
+- Now i want to concurrently watch that datastructure if an new entries is made into
+-
+*/
+// type KVExpiry struct {
+// 	key    string
+// 	expiry time.Time
+// }
 type Store struct {
 	kv map[string]string
 	mu sync.RWMutex
@@ -58,11 +69,26 @@ func executeSet(output *Command, s *Store) (string, error) {
 
 	value := output.Args[1]
 	s.kv[key] = value
+	if len(output.Args) > 3 && output.Args[2] == "PX" {
+		expiry, err := strconv.Atoi(output.Args[3])
+		if err != nil {
+			return "", fmt.Errorf("Error Getting the Expiry form the Args")
+		}
+		go deleteAfterExpiry(expiry, s, key)
+	}
 
 	// s.kv[output.Cmd] =
 
 	return "+OK\r\n", nil
 }
+
+func deleteAfterExpiry(t int, s *Store, key string) {
+	//waiit till the time is tickered
+	time.Sleep(time.Duration(t) * time.Millisecond)
+	delete(s.kv, key)
+	//delete from the key
+}
+
 func executeGet(output *Command, s *Store) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
