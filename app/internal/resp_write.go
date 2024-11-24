@@ -5,11 +5,8 @@ import "fmt"
 type Resp struct {
 }
 
-var respNull = "$-1\r\n"
-
-func respOK() string {
-	return ("+OK\r\n")
-}
+var respNull = "($-1\r\n)"
+var respOK = "+OK\r\n"
 
 // $<length>\r\n<value>\r\n
 

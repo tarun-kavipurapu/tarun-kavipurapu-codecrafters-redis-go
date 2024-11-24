@@ -79,7 +79,7 @@ func executeSet(output *Command, s *Store) (string, error) {
 
 	// s.kv[output.Cmd] =
 
-	return "+OK\r\n", nil
+	return respOK, nil
 }
 
 func deleteAfterExpiry(t int, s *Store, key string) {
