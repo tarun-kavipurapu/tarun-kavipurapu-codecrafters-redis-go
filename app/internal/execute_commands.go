@@ -29,9 +29,9 @@ func NewStore() *Store {
 	}
 }
 
-func EvaluateFunc(output *Command, s *Store) (string, error) {
+func EvaluateFunc(output *Command, s *Store) ([]byte, error) {
 	var err error
-	var outputString string
+	var outputString []byte
 	switch output.Cmd {
 	case "PING":
 		outputString, err = executePing(output)
@@ -42,28 +42,28 @@ func EvaluateFunc(output *Command, s *Store) (string, error) {
 	case "GET":
 		outputString, err = executeGet(output, s)
 	default:
-		outputString = "-ERR unknown command '" + output.Cmd + "'\r\n"
+		outputString = []byte("-ERR unknown command '" + output.Cmd + "'\r\n")
 	}
 
 	return outputString, err
 
 }
-func executePing(output *Command) (string, error) {
-	return ("+" + "PONG" + "\r\n"), nil
+func executePing(output *Command) ([]byte, error) {
+	return encodeSimpleString("+" + "PONG" + "\r\n"), nil
 
 }
-func executeEcho(output *Command) (string, error) {
+func executeEcho(output *Command) ([]byte, error) {
 	ans := output.Args[0]
-	return ("+" + ans + "\r\n"), nil
+	return encodeSimpleString(ans), nil
 
 }
-func executeSet(output *Command, s *Store) (string, error) {
+func executeSet(output *Command, s *Store) ([]byte, error) {
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
 	log.Println(output)
 	if len(output.Args) < 2 {
-		return "", fmt.Errorf("Either the key or value is missing")
+		return nil, fmt.Errorf("Either the key or value is missing")
 	}
 	key := output.Args[0]
 
@@ -72,7 +72,7 @@ func executeSet(output *Command, s *Store) (string, error) {
 	if len(output.Args) > 3 && output.Args[2] == "PX" {
 		expiry, err := strconv.Atoi(output.Args[3])
 		if err != nil {
-			return "", fmt.Errorf("Error Getting the Expiry form the Args")
+			return nil, fmt.Errorf("Error Getting the Expiry form the Args")
 		}
 		go deleteAfterExpiry(expiry, s, key)
 	}
@@ -89,11 +89,11 @@ func deleteAfterExpiry(t int, s *Store, key string) {
 	//delete from the key
 }
 
-func executeGet(output *Command, s *Store) (string, error) {
+func executeGet(output *Command, s *Store) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if len(output.Args) < 1 {
-		return "", fmt.Errorf("KEy is missing")
+		return nil, fmt.Errorf("KEy is missing")
 	}
 
 	key := output.Args[0]

@@ -74,7 +74,7 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 			log.Println("Error Evaluating the OutputString")
 			// conn.Write([]byte(err.Error()))
 		}
-		_, writeErr := conn.Write([]byte(outputString))
+		_, writeErr := conn.Write(outputString)
 		if writeErr != nil {
 			log.Println("Error writing to connection:", writeErr)
 			return
