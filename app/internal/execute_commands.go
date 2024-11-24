@@ -77,8 +77,9 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 		value:     value,
 		createdAt: time.Now(),
 	}
+	log.Println(output.Args)
 
-	if len(output.Args) > 3 && output.Args[2] == "PX" {
+	if len(output.Args) == 4 && output.Args[2] == "PX" {
 		expiry, err := strconv.Atoi(output.Args[3])
 		if err != nil {
 			return nil, fmt.Errorf("error getting the expiry from the args")
