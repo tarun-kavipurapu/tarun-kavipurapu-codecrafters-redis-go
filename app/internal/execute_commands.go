@@ -117,7 +117,7 @@ func executeGet(output *Command, s *Store) ([]byte, error) {
 
 	}
 	log.Println(val.value)
-	log.Println(val.expiryAt)
+	log.Println(val.expiryAt, "Expiry date")
 	log.Println(val.createdAt)
 
 	return respString(val.value), nil

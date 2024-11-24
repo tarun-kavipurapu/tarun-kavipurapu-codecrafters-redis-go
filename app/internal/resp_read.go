@@ -37,6 +37,7 @@ func (r *RespReader) CommandRead() (interface{}, error) {
 	case STRING:
 	case ERROR:
 	case INTEGER:
+		return r.readInteger()
 	case BULK:
 		return r.readBulk()
 	case ARRAY:
@@ -63,6 +64,7 @@ func (r *RespReader) readBulk() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// log.Println(string(command))
 
 	return string(command), nil
 }
@@ -89,6 +91,7 @@ func (r *RespReader) readArray() (interface{}, error) {
 	values := make([]interface{}, size)
 	for i := 0; i < size; i++ {
 		val, err := r.CommandRead()
+		log.Println(val)
 		if err != nil {
 			return nil, err
 		}

@@ -67,7 +67,6 @@ func (s *Server) handleConnLoop(conn net.Conn) {
 			conn.Write([]byte("-ERR unknown command\r\n"))
 			continue
 		}
-
 		outputString, err := EvaluateFunc(output, s.store)
 		log.Println(string(outputString))
 		if err != nil {
