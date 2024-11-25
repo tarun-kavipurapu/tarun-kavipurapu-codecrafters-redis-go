@@ -96,7 +96,6 @@ func (s *Server) readCommands(c io.ReadWriter) (*Command, error) {
 			return nil, io.EOF
 		}
 		if err != nil {
-			// If an error occurs and no values have been read, return the error
 			if len(values) == 0 {
 				return nil, fmt.Errorf("error reading command: %v", err)
 			}
@@ -112,23 +111,19 @@ func (s *Server) readCommands(c io.ReadWriter) (*Command, error) {
 
 	log.Println("Parsed RESP values:", values)
 
-	// Ensure values are not empty
 	if len(values) == 0 {
 		return nil, fmt.Errorf("empty command")
 	}
 
-	// Flatten and convert `values` to a `[]string`
 	tokens, err := toFlatStringArray(values)
 	if err != nil {
 		return nil, err
 	}
 
-	// Ensure there is at least a command token
 	if len(tokens) == 0 {
 		return nil, fmt.Errorf("empty command array")
 	}
 
-	// Construct and return the parsed command
 	return &Command{
 		Cmd:  strings.ToUpper(tokens[0]),
 		Args: tokens[1:],
@@ -142,17 +137,14 @@ func toFlatStringArray(values []interface{}) ([]string, error) {
 	for _, value := range values {
 		switch v := value.(type) {
 		case string:
-			// Add string values directly
 			result = append(result, v)
 		case []interface{}:
-			// Recursively process nested arrays
 			flattened, err := toFlatStringArray(v)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, flattened...)
 		default:
-			// Return an error for unsupported types
 			return nil, fmt.Errorf("unsupported type %T in values", v)
 		}
 	}

@@ -54,7 +54,7 @@ func EvaluateFunc(output *Command, s *Store) ([]byte, error) {
 
 }
 func executePing(output *Command) ([]byte, error) {
-	return encodeSimpleString("+" + "PONG" + "\r\n"), nil
+	return encodeSimpleString("PONG"), nil
 
 }
 func executeEcho(output *Command) ([]byte, error) {
@@ -80,50 +80,43 @@ func executeSet(output *Command, s *Store) ([]byte, error) {
 	log.Println(output.Args)
 
 	if len(output.Args) == 4 && output.Args[2] == "PX" {
-		expiry, err := strconv.Atoi(output.Args[3])
+		expiration, err := strconv.Atoi(output.Args[3])
+
 		if err != nil {
-			return nil, fmt.Errorf("error getting the expiry from the args")
+
+			fmt.Println(err)
+
+			return nil, fmt.Errorf("-ERR wrong expiration time provided for the record")
+
 		}
-		log.Println("Expiry Triggered", expiry)
 
-		//Another way  of expiring this would be to maintain an expiry map in the Store struct and then while accesing it wwith the golang you can simply expire it
-
-		now := time.Now()
-
-		// Add 27 seconds to the current time
-		expiryTime := now.Add(time.Duration(expiry) * time.Second)
-		record.expiryAt = expiryTime
+		record.expiryAt = time.Now().Add(time.Duration(expiration) * time.Millisecond) // Converting milliseconds to seconds
 	}
 	s.kv[key] = record
 
-	// log.Println(s.kv[key].expiryAt)
-	// log.Println(s.kv[key].expiryAt)
+	log.Println("Expiry Time", s.kv[key].expiryAt)
 
 	return respOK, nil
 }
 
 func executeGet(output *Command, s *Store) ([]byte, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
+	// s.mu.RLock()
+	// defer s.mu.RUnlock()
 	if len(output.Args) < 1 {
-		return nil, fmt.Errorf("KEy is missing")
+		return nil, fmt.Errorf("Key is missing")
 	}
+
 	key := output.Args[0]
-	val, prsnt := s.kv[key]
-	if !prsnt {
-		return respNull, nil
-	}
-	if time.Now().After(val.expiryAt) && !val.expiryAt.IsZero() {
-		log.Println("I am here")
+	val, ok := s.kv[key]
+	if ok {
+		if val.expiryAt.IsZero() || val.expiryAt.After(time.Now()) {
+			return respString(val.value), nil
+		}
+		// If expired, delete the key and return null
 		delete(s.kv, key)
-
 		return respNull, nil
-
+	} else {
+		return respNull, nil
 	}
-	log.Println(val.value)
-	log.Println(val.expiryAt, "Expiry date")
-	log.Println(val.createdAt)
 
-	return respString(val.value), nil
 }

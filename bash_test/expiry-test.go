@@ -65,7 +65,7 @@ func main() {
 	}
 	fmt.Printf("Immediate GET response: %s", resp)
 
-	// Test 3: Get key after 3 seconds
+	// Test 3: Get key after 3 secondsJ
 	fmt.Println("Waiting 3 seconds...")
 	time.Sleep(3 * time.Second)
 
@@ -74,11 +74,11 @@ func main() {
 		fmt.Printf("Error getting key: %v\n", err)
 		return
 	}
-	fmt.Printf("GET after 3 seconds: %s", resp)
+	// fmt.Printf("GET after  seconds: %s", resp)
 
 	// Test 4: Get key after expiry
-	fmt.Println("Waiting 9 more seconds...")
-	time.Sleep(9 * time.Second)
+	fmt.Println("Waiting 2 more seconds...")
+	time.Sleep(2 * time.Second)
 
 	resp, err = sendCommand(getCmd)
 	if err != nil {
